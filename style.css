@@ -1,0 +1,23 @@
+.updateButton {
+
+    margin-left: 20px;
+    margin-top: 20px;
+}
+
+.buttonContainer {
+	margin-left: 20%;
+}
+.sliderContainer {
+	height:50px;
+}
+
+.slider{
+	width: 300px !important;
+	margin-left: 20%;
+}
+
+.labelSlider{
+	display: inline-block;
+	width: 240px; 
+	text-align: right;
+}
