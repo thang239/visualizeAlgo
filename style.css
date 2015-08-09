@@ -21,3 +21,7 @@
 	width: 240px; 
 	text-align: right;
 }
+
+#selectSorting {
+	height:34px !important;
+}

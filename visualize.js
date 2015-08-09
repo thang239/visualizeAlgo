@@ -1,21 +1,25 @@
 window.onload = function() {
 	circleChart();
+	// play()
 }
 
 
 var yAxis = 150;
 var animation = [];
 
-var NUMBER_CIRCLE = 20;
-var MIN_VALUE = 10;
-var MAX_VALUE = 40
+var NUMBER_CIRCLE = 50;
+var MIN_VALUE = 1;
+var MAX_VALUE = 17;
 var dataset;
 var SVG_WIDTH = 1500;
 var SVG_HEIGHT = 300;
 var DURATION = 100;
 var PADDING = 2;
-var svg;
+var svg, svg2;
 var timeoutID;
+// var tones = play();
+
+var sortType = "bubbleSort";
 var key = function(d) {
 	return d.key;
 };
@@ -48,6 +52,9 @@ var timeoutGlob = {
 			.attr('height', SVG_HEIGHT);
 
 
+		// svg2 = d3.select('#displaySVG2').append('svg')
+		// 	.attr('width', SVG_WIDTH)
+		// 	.attr('height', SVG_HEIGHT);
 		// console.log(element)
 		element.circles = svg.selectAll("circle");
 		element.texts = svg.selectAll("text");
@@ -92,10 +99,28 @@ var timeoutGlob = {
 			})
 		d3.select("#runsort")
 			.on("click", function() {
+				switch (sortType) {
+					case "bubbleSort":
+						animation = bubbleSort(dataset, "value");
+						break;
+					case "insertionSort":
+						animation = insertionSort(dataset, "value");
+						break;
+					case "selectionSort":
+						animation = selectionSort(dataset, "value");
+						break;
+					case "mergeSort":
+						animation = mergeSort(dataset, "value");
+						break;
+				}
+				// tones.play(233, 4);
+				// dataset.forEach(function(d) {
+				// tones.play(getNote(d.value), 4);
+				// });
+				// tones.play(getNote(17), 6);
+
 				// console.table(dataset)
 				//not actually sort dataset, just get the list of works need to be done
-				animation = bubbleSort(dataset, "value") //.reverse();
-				animation = insertionSort(dataset, "value") //.reverse();
 
 				// console.table(animation)
 				// console.table(dataset)
@@ -105,8 +130,13 @@ var timeoutGlob = {
 				// console.table(animation)
 
 			})
-	};
 
+		d3.select("#selectSorting").on("change", function() {
+			// console.log(this.options[this.selectedIndex].value)
+			sortType = this.options[this.selectedIndex].value;
+			// console.log(sortType);
+		})
+	};
 
 function generateCircles(element) {
 	//create circles elements
@@ -156,11 +186,25 @@ function generateCircles(element) {
 }
 
 function steps(animation) {
-	if (animation.length === 0) return;
+	if (animation.length === 0) {
+		// var data = dataset.map(function(d) {
+		// 	return d.value
+		// })
+
+
+		// console.log(data);
+		// data.forEach(function(d) {
+		// 	tones.play(getNote(d), 5);
+		// })
+		return;
+
+	}
 	// while (animation.length > 0) {
 	var action = animation.shift();
-	if (action) {
+	if (action && (action.type === "swap")) {
 		dataset.swap(action.i, action.j);
+		// tones.play(getNote(action.i), 5);
+		tones.play(getNote(action.j), 5);
 		// console.log(element.circles)
 		// element.circles
 		svg.selectAll('circle')
@@ -194,11 +238,15 @@ function steps(animation) {
 			})
 
 		// swapElement(element, data, animation, svg, key, durationTime);
+	} else if (action.type === "create") {
+		if (!svg2) {
+			svg2 = d3.select('#displaySVG2').append('svg')
+				.attr('width', SVG_WIDTH)
+				.attr('height', SVG_HEIGHT);
+		};
+
+
 	}
-	// }
-	// timeoutID = setTimeout(function() {
-	// 	steps(animation)
-	// }, DURATION);
 	timeoutGlob.setTimeout(function() {
 		steps(animation)
 	}, DURATION);
@@ -250,20 +298,16 @@ var sortList = {};
 
 function bubbleSort(arr, prop) {
 	var animations = [];
+	//clone array to avoid arr changing
 	var brr = _.clone(arr, true);
 	var len = brr.length - 1;
 	var swapped;
 
-	function swap(i, j) {
-		var a = brr[i];
-		brr[i] = brr[j];
-		brr[j] = a;
-	}
 	do {
 		swapped = false;
 		for (i = 0; i < len; i++) {
 			if (brr[i][prop] > brr[i + 1][prop]) {
-				swap(i, i + 1)
+				swap(brr, i, i + 1)
 				animations.push({
 					type: "swap",
 					i: i,
@@ -280,21 +324,114 @@ function bubbleSort(arr, prop) {
 function insertionSort(arr, prop) {
 	var animations = [];
 	var brr = _.clone(arr, true);
-	var len = brr.length - 1;
+	var len = brr.length;
 
-	for (var i = 1; i < len; i++) {
-		var k = brr[i][prop];
-		for (var j = i - 1; j >= 0 && k < brr[j][prop]; j--) {
-			brr[j + 1] = brr[j];
+	for (var i = 0; i < len; i++) {
+		j = i;
+		while (j > 0 && brr[j][prop] < brr[j - 1][prop]) {
+			swap(brr, j, j - 1);
 			animations.push({
 				type: "swap",
-				i: j + 1,
-				j: j
+				i: j,
+				j: j - 1
 			})
+			j--;
+		}
+	}
 
+	return animations;
+}
+
+function selectionSort(arr, prop) {
+
+	var animations = [];
+	var brr = _.clone(arr, true);
+	var len = brr.length;
+	var i, j, iMin;
+	// refer to https://en.wikipedia.org/wiki/Selection_sort
+	for (j = 0; j < len - 1; j++) {
+		iMin = j;
+		for (var i = j + 1; i < len; i++) {
+			if (brr[i][prop] < brr[iMin][prop]) {
+				iMin = i;
+			}
+		}
+		if (iMin != j) {
+			swap(brr, j, iMin);
+			animations.push({
+				type: "swap",
+				i: j,
+				j: iMin
+			})
+		}
+	}
+
+	return animations;
+}
+
+function getNote(num) {
+	var map = {
+		// octave 4
+		"c": 261.626,
+		"c#": 277.183,
+		"db": 277.183,
+		"d": 293.665,
+		"d#": 311.127,
+		"eb": 311.127,
+		"e": 329.628,
+		"f": 349.228,
+		"f#": 369.994,
+		"gb": 369.994,
+		"g": 391.995,
+		"g#": 415.305,
+		"ab": 415.305,
+		"a": 440,
+		"a#": 466.164,
+		"bb": 466.164,
+		"b": 493.883
+	};
+	var tone = Object.keys(map);
+	return tone[num % tone.length];
+}
+
+//credit :http://www.nczonline.net/blog/2009/01/27/speed-up-your-javascript-part-3/
+function mergeSort(arr, prop) {
+	var animations = [];
+	var brr = _.clone(arr, true);
+	var len = brr.length;
+
+	function merge(left, right) {
+		var result = [];
+
+		while (left.length && right.length) {
+			if (left[0] <= right[0]) {
+				result.push(left.shift());
+			} else {
+				result.push(right.shift());
+			}
 		}
 
-		brr[j + 1][prop] = k;
+		while (left.length)
+			result.push(left.shift());
+
+		while (right.length)
+			result.push(right.shift());
+
+		return result;
 	}
-	return animations;
+	if (arr.length < 2)
+		return arr;
+
+	var middle = parseInt(arr.length / 2);
+	var left = arr.slice(0, middle);
+	var right = arr.slice(middle, arr.length);
+
+	return merge(mergeSort(left), mergeSort(right));
+
+}
+
+function swap(brr, i, j) {
+	var a = brr[i];
+	brr[i] = brr[j];
+	brr[j] = a;
 }
