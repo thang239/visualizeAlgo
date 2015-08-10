@@ -1,7 +1,7 @@
 var yAxis = 150;
 var animation = [];
 
-var NUMBER_CIRCLE = 50;
+var NUMBER_SHAPES = 30;
 var MIN_VALUE = 1;
 var MAX_VALUE = 34;
 var dataset;
@@ -10,9 +10,10 @@ var SVG_WIDTH = 1200;
 var SVG_HEIGHT = 400;
 var DURATION = 100;
 var PADDING = 2;
+var MIN_FONT_SIZE = 10;
 var svg, svg2;
 var timeoutID;
-var generate;
+var generate, update;
 // var tones = play();
 
 var timeoutGlob = {
@@ -43,9 +44,8 @@ window.onload = function() {
 function circleShape() {
 	var circlePadding = 1;
 	var startTime, stopTime, currentTime;
+	var xScale, yScale;
 	var element = {};
-	// var xScale = d3.scale.ordinal()
-	// 	.domain(d3.range(dataset.length))
 
 	//create svg container with width and height
 	svg = d3.select('#displaySVG').append('svg')
@@ -55,34 +55,32 @@ function circleShape() {
 	element.circles = svg.selectAll("circle");
 	element.bars = svg.selectAll("rect");
 	element.texts = svg.selectAll("text");
-	d3.select("#generate").on("click", function() {
-		timeoutGlob.clearTimeout();
-		d3.selectAll("circle").remove();
-		d3.selectAll("rect").remove();
-		d3.selectAll("text").remove();
-		dataset = generateDataSet(NUMBER_CIRCLE, MIN_VALUE, MAX_VALUE);
-		var newWidth = dataset.reduce(function(sum, d) {
-			sum += d.value * 2;
-			return sum;
-		}, 0) + 200 + PADDING * dataset.length;
-		console.log("newWidth = ", newWidth);
-		SVG_WIDTH = SVG_WIDTH < newWidth ? newWidth : SVG_WIDTH;
-		svg.attr('width', SVG_WIDTH);
-		generate[shapeType](element);
-	})
 
-	// d3.select("#update")
-	// 	.on("click", function() {
-	// 		animation.push({
-	// 			type: "swap",
-	// 			i: 0,
-	// 			j: 4
-	// 		})
-	// 		steps(element, animation);
-	// 	})
+
+
+	//generate dataset
+	d3.select("#generate").on("click", function() {
+		clearView();
+		dataset = generateRandomDataset(NUMBER_SHAPES, MIN_VALUE, MAX_VALUE);
+		getNewSvgWidth();
+		xScale = d3.scale.ordinal()
+			.domain(d3.range(dataset.length))
+			.rangeRoundBands([0, SVG_WIDTH], 0.2);
+		yScale = d3.scale.linear()
+			.domain([0, d3.max(dataset, function(d) {
+				return d.value;
+			})])
+			.range([0, SVG_HEIGHT]);
+		generate[shapeType](element, xScale, yScale);
+	})
 	d3.select("#duration")
 		.on("input", function() {
 			DURATION = (+this.value);
+		})
+
+	d3.select("#shape")
+		.on("input", function() {
+			NUMBER_SHAPES = (+this.value);
 		})
 
 	d3.select("#pauseresume")
@@ -122,7 +120,7 @@ function circleShape() {
 				default:
 					console.log('no sort');
 			}
-			steps(animation);
+			steps(animation, xScale, yScale);
 		})
 
 	d3.select("#selectSorting").on("change", function() {
@@ -134,17 +132,22 @@ function circleShape() {
 	})
 
 	d3.select("#shuffle").on("click", function() {
-		dataset = d3.range(1, 35);
-		console.log(dataset)
+		dataset = generateFixedDataset();
+		getNewSvgWidth();
+		xScale = d3.scale.ordinal()
+			.domain(d3.range(dataset.length))
+			.rangeRoundBands([0, SVG_WIDTH], 0.2);
+		yScale = d3.scale.linear()
+			.domain([0, d3.max(dataset, function(d) {
+				return d.value;
+			})])
+			.range([0, SVG_HEIGHT]);
+		clearView();
+		generate[shapeType](element, xScale, yScale);
 	})
 };
 generate = {
 	circles: function generateCircles(element) {
-		//create circles elements
-		// element.circles = svg.selectAll('circle');
-		//create text elements
-		// element.texts = svg.selectAll("text");
-		//assign attributes for each circle
 		var circleAttributes = element.circles.data(dataset, key)
 			.enter()
 			.append("circle")
@@ -180,25 +183,12 @@ generate = {
 			.attr("y", yAxis)
 			.attr("font-family", "sans-serif")
 			.attr("font-size", function(d) {
-				return d.value + "px"
+				return (d.value < MIN_FONT_SIZE) ? (MIN_FONT_SIZE + "px") : (d.value + "px");
 			})
 			.attr("fill", "white");
 
 	},
-	bars: function generateBars(element) {
-		//create circles elements
-		// element.circles = svg.selectAll('circle');
-		//create text elements
-		// element.texts = svg.selectAll("text");
-		//assign attributes for each circle
-		var xScale = d3.scale.ordinal()
-			.domain(d3.range(dataset.length))
-			.rangeRoundBands([0, SVG_WIDTH], 0.2);
-		var yScale = d3.scale.linear()
-			.domain([0, d3.max(dataset, function(d) {
-				return d.value;
-			})])
-			.range([0, SVG_HEIGHT]);
+	bars: function generateBars(element, xScale, yScale) {
 		var barAttributes = element.bars.data(dataset, key)
 			.enter()
 			.append("rect")
@@ -209,7 +199,7 @@ generate = {
 				return xScale(i);
 			})
 			.attr("y", function(d) {
-				return SVG_HEIGHT - yScale(d.value);
+				return SVG_HEIGHT - yScale(d.value) - 10;
 			})
 			.attr("width", xScale.rangeBand())
 			.attr("height", function(d) {
@@ -233,11 +223,11 @@ generate = {
 				return xScale(i) + xScale.rangeBand() / 2;
 			})
 			.attr("y", function(d) {
-				return SVG_HEIGHT - yScale(d.value) + 14;
+				return SVG_HEIGHT - yScale(d.value) + d.value * 2;
 			})
 			.attr("font-family", "sans-serif")
 			.attr("font-size", function(d) {
-				return d.value + "px"
+				return (d.value < MIN_FONT_SIZE) ? (MIN_FONT_SIZE + "px") : (d.value + "px");
 			})
 			.attr("fill", "white");
 
@@ -256,7 +246,7 @@ function play() {
 	}, DURATION);
 }
 
-function steps(animation) {
+function steps(animation, xScale, yScale) {
 	if (animation.length === 0) {
 		dataset_sorted = _.clone(dataset, true);
 		play();
@@ -268,13 +258,9 @@ function steps(animation) {
 		dataset.swap(action.i, action.j);
 		tones.play(getNote(action.i), 5);
 		tones.play(getNote(action.j), 5);
-		if (shapeType === "circles") {
-			updateCircles();
-
-		} else {
-			updateBars();
-		}
-		updateText()
+		//update shapes and texts
+		update[shapeType](xScale, yScale);
+		update.texts(xScale, yScale);
 		// element.texts
 	} else if (action.type === "create") {
 		if (!svg2) {
@@ -286,102 +272,98 @@ function steps(animation) {
 
 	}
 	timeoutGlob.setTimeout(function() {
-		steps(animation)
+		steps(animation, xScale, yScale)
 	}, DURATION);
 }
 
-function updateCircles() {
-	svg.selectAll('circle')
-		.data(dataset, key)
-		.attr("T", 0)
-		.transition()
-		.duration(DURATION)
-		.ease("linear")
-		.attr("T", 1)
-		.attr("cx", function(d, i) {
-			return getxAxis(dataset, i) + PADDING * i;
-		})
-		.attr("cy", function(d) {
-			return yAxis;
-		});
-}
-
-function updateBars() {
-	var xScale = d3.scale.ordinal()
-		.domain(d3.range(dataset.length))
-		.rangeRoundBands([0, SVG_WIDTH], 0.2);
-	var yScale = d3.scale.linear()
-		.domain([0, d3.max(dataset, function(d) {
-			return d.value;
-		})])
-		.range([0, SVG_HEIGHT]);
-	svg.selectAll('rect')
-		.data(dataset, key)
-		.transition()
-		.duration(DURATION)
-	// .enter()
-	// .append("rect")
-	// .attr("id", function(d, i) {
-	// 	return "rect" + i;
-	// })
-	.attr("x", function(d, i) {
-		return xScale(i);
-	})
-		.attr("y", function(d) {
-			return SVG_HEIGHT - yScale(d.value);
-		})
-		.attr("width", xScale.rangeBand())
-		.attr("height", function(d) {
-			return yScale(d.value)
-		})
-	// .style("fill", function(d) {
-	// 	return d.color;
-	// })
-
-}
-
-function updateText() {
-	if (shapeType === "circles") {
-		svg.selectAll('text')
+update = {
+	circles: function updateCircles() {
+		svg.selectAll('circle')
+			.data(dataset, key)
+			.attr("T", 0)
+			.transition()
+			.duration(DURATION)
+			.ease("linear")
+			.attr("T", 1)
+			.attr("cx", function(d, i) {
+				return getxAxis(dataset, i) + PADDING * i;
+			})
+			.attr("cy", function(d) {
+				return yAxis;
+			});
+	},
+	bars: function updateBars(xScale, yScale) {
+		svg.selectAll('rect')
 			.data(dataset, key)
 			.transition()
 			.duration(DURATION)
-			.text(function(d) {
-				return d.value;
-			})
 			.attr("x", function(d, i) {
-				return getxAxis(dataset, i) + PADDING * i;
-			})
-			.attr("y", yAxis)
-			.attr("font-size", function(d) {
-				return d.value + "px"
-			})
-	} else {
-		svg.selectAll('text').data(dataset, key)
-			.enter()
-			.append("text")
-			.text(function(d) {
-				return d.value;
-			})
-			.attr("id", function(d, i) {
-				return "circle" + i;
-			})
-			.attr("x", function(d, i) {
-				return xScale(i) + xScale.rangeBand() / 2;
+				return xScale(i);
 			})
 			.attr("y", function(d) {
-				return SVG_HEIGHT - yScale(d.value) + 14;
+				return SVG_HEIGHT - yScale(d.value);
 			})
-			.attr("font-size", function(d) {
-				return d.value + "px"
+			.attr("width", xScale.rangeBand())
+			.attr("height", function(d) {
+				return yScale(d.value)
 			})
+	},
+	texts: function updateText(xScale, yScale) {
+		if (shapeType === "circles") {
+			svg.selectAll('text')
+				.data(dataset, key)
+				.transition()
+				.duration(DURATION)
+				.text(function(d) {
+					return d.value;
+				})
+				.attr("x", function(d, i) {
+					return getxAxis(dataset, i) + PADDING * i;
+				})
+				.attr("y", yAxis)
+				.attr("font-size", function(d) {
+					return (d.value < MIN_FONT_SIZE) ? (MIN_FONT_SIZE + "px") : (d.value + "px");
+				})
+		} else {
+			svg.selectAll('text').data(dataset, key)
+				.transition()
+				.duration(DURATION)
+				.text(function(d) {
+					return d.value;
+				})
+				.attr("id", function(d, i) {
+					return "circle" + i;
+				})
+				.attr("x", function(d, i) {
+					return xScale(i) + xScale.rangeBand() / 2;
+				})
+				.attr("y", function(d) {
+					return SVG_HEIGHT - yScale(d.value) + d.value * 2;
+				})
+				.attr("font-size", function(d) {
+					return (d.value < MIN_FONT_SIZE) ? (MIN_FONT_SIZE + "px") : (d.value + "px");
+				})
+		}
+
 	}
 
 }
 
+function getNewSvgWidth() {
+	if (shapeType === "circles") {
+		var newWidth = dataset.reduce(function(sum, d) {
+			sum += d.value * 2;
+			return sum;
+		}, 0) + 200 + PADDING * dataset.length;
+		SVG_WIDTH = SVG_WIDTH < newWidth ? newWidth : SVG_WIDTH;
+		svg.attr('width', SVG_WIDTH);
+	} else {
+		SVG_WIDTH = 1200;
+	}
+}
 
 function getxAxis(arr, index) {
-	var xAxis = 200;
+	var xAxis = 100;
 	if (index === 0) return xAxis;
 	xAxis += arr[0].value;
 	for (var i = 1; i < index; i++) {
@@ -391,7 +373,7 @@ function getxAxis(arr, index) {
 	return xAxis;
 }
 
-function generateDataSet(num, min, max) {
+function generateRandomDataset(num, min, max) {
 	//generate array of integer with leng:num and maxValue:max
 	var arr = [];
 	for (var i = 0; i < num; i++) {
@@ -404,20 +386,44 @@ function generateDataSet(num, min, max) {
 	return arr;
 }
 
+function generateFixedDataset() {
+	var arr = d3.range(1, 35);
+	shuffle(arr);
+	console.log(arr);
+	return arr.map(function(d, i) {
+		return {
+			key: i,
+			value: d,
+			color: getBlueColor(d)
+		};
+	});
+}
+
 function randomColor() {
 	return "hsl(" + Math.random() * 360 + ",100%,50%)";
 }
 
-function resumed_ease(ease, elapsed_time) {}
-
-
-function animate() {
-	var SVG_WIDTH = 400;
-	var SVG_HEIGHT = 400;
-	var svg = d3.select('#displaySVG').append('svg')
-		.attr('width', SVG_WIDTH)
-		.attr('height', SVG_HEIGHT);
+function getBlueColor(value) {
+	return "rgb(0, 0, " + (value * 10) + ")";
 }
+
+function shuffle(array) {
+	var j;
+	for (var i = array.length - 1; i > 0; i--) {
+		j = ~~ (Math.random() * (i + 1));
+		array.swap(j, i)
+	}
+}
+
+// function resumed_ease(ease, elapsed_time) {}
+
+// function animate() {
+// 	var SVG_WIDTH = 400;
+// 	var SVG_HEIGHT = 400;
+// 	var svg = d3.select('#displaySVG').append('svg')
+// 		.attr('width', SVG_WIDTH)
+// 		.attr('height', SVG_HEIGHT);
+// }
 
 
 var sortList = {};
@@ -613,19 +619,13 @@ function heapSort(arr, prop) {
 	}));
 	return animations;
 }
-// function heap_sort(arr) {
-// 	var brr = _.clone(arr, true);
-// 	put_array_in_heap_order(brr);
-// 	end = brr.length - 1;
-// 	while (end > 0) {
-// 		swap(brr, 0, end);
-// 		sift_element_down_heap(brr, 0, end);
-// 		end -= 1;
-// 	}
-// 	console.log(brr);
-// }
 
-
+function clearView() {
+	timeoutGlob.clearTimeout();
+	d3.selectAll("circle").remove();
+	d3.selectAll("rect").remove();
+	d3.selectAll("text").remove();
+}
 
 function swap(arr, i, j) {
 	var temp = arr[i];

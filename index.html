@@ -47,6 +47,13 @@ Section: x
 		<input type="range" min="10" max="1000" id="duration" class="slider" oninput="durationAmount.value=duration.value">
 		<output name="amount" id="durationAmount" for="duration">50</output>
 	</div>
+	<div class="sliderContainer">
+		<label for="shape" class="labelSlider" id="shapeLabel">
+			Number of shapes 
+		</label>
+		<input type="range" min="20" max="40" id="shape" class="slider" oninput="shapeAmount.value=shape.value">
+		<output name="amount" id="shapeAmount" for="shape">20</output>
+	</div>
 	<div class="buttonContainer">
 		<select class="btn btn-primary updateButton" id="selectShape">
 		  <option value="circles">Circles</option>

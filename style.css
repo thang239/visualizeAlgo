@@ -8,7 +8,8 @@
 	margin-left: 20%;
 }
 .sliderContainer {
-	height:50px;
+	height:30px;
+	margin-left: 20%;
 }
 
 .slider{
@@ -26,10 +27,14 @@ select {
 	height:34px !important;
 }
 
-#duration {
+#duration,#shape {
 	display: inline-block;
 }
 
-#durationAmount{
+#durationAmount,#shapeAmount{
 	display: inline-block;
+}
+
+#displaySVG{
+	margin-top: 100px;
 }
