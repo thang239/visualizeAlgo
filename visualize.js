@@ -1,29 +1,19 @@
-window.onload = function() {
-	circleChart();
-	// play()
-}
-
-
 var yAxis = 150;
 var animation = [];
 
 var NUMBER_CIRCLE = 50;
 var MIN_VALUE = 1;
-var MAX_VALUE = 17;
+var MAX_VALUE = 34;
 var dataset;
-var SVG_WIDTH = 1500;
-var SVG_HEIGHT = 300;
+var dataset_sorted;
+var SVG_WIDTH = 1200;
+var SVG_HEIGHT = 400;
 var DURATION = 100;
 var PADDING = 2;
 var svg, svg2;
 var timeoutID;
+var generate;
 // var tones = play();
-
-var sortType = "bubbleSort";
-var key = function(d) {
-	return d.key;
-};
-
 
 var timeoutGlob = {
 	timeouts: [],
@@ -36,192 +26,322 @@ var timeoutGlob = {
 		});
 		this.timeouts = [];
 	}
+};
+
+var sortType = "bubbleSort";
+var shapeType = "circles";
+var key = function(d) {
+	return d.key;
+};
+window.onload = function() {
+	circleShape();
+	// play()
 }
 
 
-	function circleChart() {
-		var circlePadding = 1;
-		var startTime, stopTime, currentTime;
-		var element = {};
-		// var xScale = d3.scale.ordinal()
-		// 	.domain(d3.range(dataset.length))
 
-		//create svg container with width and height
-		svg = d3.select('#displaySVG').append('svg')
-			.attr('width', SVG_WIDTH)
-			.attr('height', SVG_HEIGHT);
+function circleShape() {
+	var circlePadding = 1;
+	var startTime, stopTime, currentTime;
+	var element = {};
+	// var xScale = d3.scale.ordinal()
+	// 	.domain(d3.range(dataset.length))
 
+	//create svg container with width and height
+	svg = d3.select('#displaySVG').append('svg')
+		.attr('width', SVG_WIDTH)
+		.attr('height', SVG_HEIGHT);
 
-		// svg2 = d3.select('#displaySVG2').append('svg')
-		// 	.attr('width', SVG_WIDTH)
-		// 	.attr('height', SVG_HEIGHT);
-		// console.log(element)
-		element.circles = svg.selectAll("circle");
-		element.texts = svg.selectAll("text");
-		d3.select("#generate").on("click", function() {
-			timeoutGlob.clearTimeout();
-			d3.selectAll("circle").remove();
-			d3.selectAll("text").remove();
-			dataset = generateDataSet(NUMBER_CIRCLE, MIN_VALUE, MAX_VALUE);
-			generateCircles(element, dataset, svg, key)
+	element.circles = svg.selectAll("circle");
+	element.bars = svg.selectAll("rect");
+	element.texts = svg.selectAll("text");
+	d3.select("#generate").on("click", function() {
+		timeoutGlob.clearTimeout();
+		d3.selectAll("circle").remove();
+		d3.selectAll("rect").remove();
+		d3.selectAll("text").remove();
+		dataset = generateDataSet(NUMBER_CIRCLE, MIN_VALUE, MAX_VALUE);
+		var newWidth = dataset.reduce(function(sum, d) {
+			sum += d.value * 2;
+			return sum;
+		}, 0) + 200 + PADDING * dataset.length;
+		console.log("newWidth = ", newWidth);
+		SVG_WIDTH = SVG_WIDTH < newWidth ? newWidth : SVG_WIDTH;
+		svg.attr('width', SVG_WIDTH);
+		generate[shapeType](element);
+	})
+
+	// d3.select("#update")
+	// 	.on("click", function() {
+	// 		animation.push({
+	// 			type: "swap",
+	// 			i: 0,
+	// 			j: 4
+	// 		})
+	// 		steps(element, animation);
+	// 	})
+	d3.select("#duration")
+		.on("input", function() {
+			DURATION = (+this.value);
 		})
 
-		d3.select("#update")
-			.on("click", function() {
-				// console.log(element.circles)
-				animation.push({
-					type: "swap",
-					i: 0,
-					j: 4
-				})
-				steps(element, animation);
+	d3.select("#pauseresume")
+		.on("click", function() {
+			var self = d3.select(this);
+			if (self.text() == "Pause") {
+				self.text("Resume")
+				d3.selectAll('circle')
+					.transition()
+					.duration(0);
+				d3.selectAll('text')
+					.transition().duration(0);
+
+			} else {
+				self.text("Pause");
+				cotinueTransitions();
+			}
+		})
+	d3.select("#runsort")
+		.on("click", function() {
+			switch (sortType) {
+				case "bubbleSort":
+					animation = bubbleSort(dataset, "value");
+					break;
+				case "insertionSort":
+					animation = insertionSort(dataset, "value");
+					break;
+				case "selectionSort":
+					animation = selectionSort(dataset, "value");
+					break;
+				case "mergeSort":
+					animation = mergeSort(dataset, "value");
+					break;
+				case "heapSort":
+					animation = heapSort(dataset, "value");
+					break;
+				default:
+					console.log('no sort');
+			}
+			steps(animation);
+		})
+
+	d3.select("#selectSorting").on("change", function() {
+		sortType = this.options[this.selectedIndex].value;
+	})
+
+	d3.select("#selectShape").on("change", function() {
+		shapeType = this.options[this.selectedIndex].value;
+	})
+
+	d3.select("#shuffle").on("click", function() {
+		dataset = d3.range(1, 35);
+		console.log(dataset)
+	})
+};
+generate = {
+	circles: function generateCircles(element) {
+		//create circles elements
+		// element.circles = svg.selectAll('circle');
+		//create text elements
+		// element.texts = svg.selectAll("text");
+		//assign attributes for each circle
+		var circleAttributes = element.circles.data(dataset, key)
+			.enter()
+			.append("circle")
+			.attr("id", function(d, i) {
+				return "circle" + i;
 			})
-		d3.select("#duration")
-			.on("input", function() {
-				DURATION = (+this.value);
+			.attr("cx", function(d, i) {
+				return getxAxis(dataset, i) + PADDING * i;
+			})
+			.attr("cy", function(d) {
+				return yAxis;
+			})
+			.attr("r", function(d) {
+				return d.value;
+			})
+			.style("fill", function(d) {
+				return d.color;
 			})
 
-		d3.select("#pauseresume")
-			.on("click", function() {
-				var self = d3.select(this);
-				if (self.text() == "Pause") {
-					self.text("Resume")
-					d3.selectAll('circle')
-						.transition()
-						.duration(0);
-					d3.selectAll('text')
-						.transition().duration(0);
-
-				} else {
-					self.text("Pause");
-					cotinueTransitions();
-				}
+		var textLabels = element.texts.data(dataset, key)
+			.enter()
+			.append("text")
+			.text(function(d) {
+				return d.value;
 			})
-		d3.select("#runsort")
-			.on("click", function() {
-				switch (sortType) {
-					case "bubbleSort":
-						animation = bubbleSort(dataset, "value");
-						break;
-					case "insertionSort":
-						animation = insertionSort(dataset, "value");
-						break;
-					case "selectionSort":
-						animation = selectionSort(dataset, "value");
-						break;
-					case "mergeSort":
-						animation = mergeSort(dataset, "value");
-						break;
-				}
-				// tones.play(233, 4);
-				// dataset.forEach(function(d) {
-				// tones.play(getNote(d.value), 4);
-				// });
-				// tones.play(getNote(17), 6);
+			.attr("id", function(d, i) {
+				return "circle" + i;
+			})
+			.attr("text-anchor", "middle")
+			.attr("x", function(d, i) {
+				return getxAxis(dataset, i) + PADDING * i;
+			})
+			.attr("y", yAxis)
+			.attr("font-family", "sans-serif")
+			.attr("font-size", function(d) {
+				return d.value + "px"
+			})
+			.attr("fill", "white");
 
-				// console.table(dataset)
-				//not actually sort dataset, just get the list of works need to be done
-
-				// console.table(animation)
-				// console.table(dataset)
-				steps(animation);
-				// swapElement(element, dataset, animation, svg, key, DURATION)
-				// setInterval(swapElement(element, dataset, animation, svg, key, DURATION), 2000)
-				// console.table(animation)
-
+	},
+	bars: function generateBars(element) {
+		//create circles elements
+		// element.circles = svg.selectAll('circle');
+		//create text elements
+		// element.texts = svg.selectAll("text");
+		//assign attributes for each circle
+		var xScale = d3.scale.ordinal()
+			.domain(d3.range(dataset.length))
+			.rangeRoundBands([0, SVG_WIDTH], 0.2);
+		var yScale = d3.scale.linear()
+			.domain([0, d3.max(dataset, function(d) {
+				return d.value;
+			})])
+			.range([0, SVG_HEIGHT]);
+		var barAttributes = element.bars.data(dataset, key)
+			.enter()
+			.append("rect")
+			.attr("id", function(d, i) {
+				return "rect" + i;
+			})
+			.attr("x", function(d, i) {
+				return xScale(i);
+			})
+			.attr("y", function(d) {
+				return SVG_HEIGHT - yScale(d.value);
+			})
+			.attr("width", xScale.rangeBand())
+			.attr("height", function(d) {
+				return yScale(d.value)
+			})
+			.style("fill", function(d) {
+				return d.color;
 			})
 
-		d3.select("#selectSorting").on("change", function() {
-			// console.log(this.options[this.selectedIndex].value)
-			sortType = this.options[this.selectedIndex].value;
-			// console.log(sortType);
-		})
-	};
+		var textLabels = element.texts.data(dataset, key)
+			.enter()
+			.append("text")
+			.text(function(d) {
+				return d.value;
+			})
+			.attr("id", function(d, i) {
+				return "circle" + i;
+			})
+			.attr("text-anchor", "middle")
+			.attr("x", function(d, i) {
+				return xScale(i) + xScale.rangeBand() / 2;
+			})
+			.attr("y", function(d) {
+				return SVG_HEIGHT - yScale(d.value) + 14;
+			})
+			.attr("font-family", "sans-serif")
+			.attr("font-size", function(d) {
+				return d.value + "px"
+			})
+			.attr("fill", "white");
 
-function generateCircles(element) {
-	//create circles elements
-	// element.circles = svg.selectAll('circle');
-	//create text elements
-	// element.texts = svg.selectAll("text");
-	//assign attributes for each circle
-	var circleAttributes = element.circles.data(dataset, key)
-		.enter()
-		.append("circle")
-		.attr("id", function(d, i) {
-			return "circle" + i;
-		})
-		.attr("cx", function(d, i) {
-			return getxAxis(dataset, i) + PADDING * i;
-		})
-		.attr("cy", function(d) {
-			return yAxis;
-		})
-		.attr("r", function(d) {
-			return d.value;
-		})
-		.style("fill", function(d) {
-			return d.color;
-		})
+	}
 
-	var textLabels = element.texts.data(dataset, key)
-		.enter()
-		.append("text")
-		.text(function(d) {
-			return d.value;
-		})
-		.attr("id", function(d, i) {
-			return "circle" + i;
-		})
-		.attr("text-anchor", "middle")
-		.attr("x", function(d, i) {
-			return getxAxis(dataset, i) + PADDING * i;
-		})
-		.attr("y", yAxis)
-		.attr("font-family", "sans-serif")
-		.attr("font-size", function(d) {
-			return d.value + "px"
-		})
-		.attr("fill", "white");
+};
 
+
+
+function play() {
+	if (dataset_sorted.length === 0) return;
+	var note = dataset_sorted.pop();
+	tones.play(getNote(note.value), 5);
+	setTimeout(function() {
+		play();
+	}, DURATION);
 }
 
 function steps(animation) {
 	if (animation.length === 0) {
-		// var data = dataset.map(function(d) {
-		// 	return d.value
-		// })
-
-
-		// console.log(data);
-		// data.forEach(function(d) {
-		// 	tones.play(getNote(d), 5);
-		// })
+		dataset_sorted = _.clone(dataset, true);
+		play();
 		return;
-
 	}
 	// while (animation.length > 0) {
 	var action = animation.shift();
 	if (action && (action.type === "swap")) {
 		dataset.swap(action.i, action.j);
-		// tones.play(getNote(action.i), 5);
+		tones.play(getNote(action.i), 5);
 		tones.play(getNote(action.j), 5);
-		// console.log(element.circles)
-		// element.circles
-		svg.selectAll('circle')
-			.data(dataset, key)
-			.attr("T", 0)
-			.transition()
-			.duration(DURATION)
-			.ease("linear")
-			.attr("T", 1)
-			.attr("cx", function(d, i) {
-				// return d.value * 10;
-				return getxAxis(dataset, i) + PADDING * i;
-			})
-			.attr("cy", function(d) {
-				return yAxis;
-			});
+		if (shapeType === "circles") {
+			updateCircles();
+
+		} else {
+			updateBars();
+		}
+		updateText()
 		// element.texts
+	} else if (action.type === "create") {
+		if (!svg2) {
+			svg2 = d3.select('#displaySVG2').append('svg')
+				.attr('width', SVG_WIDTH)
+				.attr('height', SVG_HEIGHT);
+		};
+
+
+	}
+	timeoutGlob.setTimeout(function() {
+		steps(animation)
+	}, DURATION);
+}
+
+function updateCircles() {
+	svg.selectAll('circle')
+		.data(dataset, key)
+		.attr("T", 0)
+		.transition()
+		.duration(DURATION)
+		.ease("linear")
+		.attr("T", 1)
+		.attr("cx", function(d, i) {
+			return getxAxis(dataset, i) + PADDING * i;
+		})
+		.attr("cy", function(d) {
+			return yAxis;
+		});
+}
+
+function updateBars() {
+	var xScale = d3.scale.ordinal()
+		.domain(d3.range(dataset.length))
+		.rangeRoundBands([0, SVG_WIDTH], 0.2);
+	var yScale = d3.scale.linear()
+		.domain([0, d3.max(dataset, function(d) {
+			return d.value;
+		})])
+		.range([0, SVG_HEIGHT]);
+	svg.selectAll('rect')
+		.data(dataset, key)
+		.transition()
+		.duration(DURATION)
+	// .enter()
+	// .append("rect")
+	// .attr("id", function(d, i) {
+	// 	return "rect" + i;
+	// })
+	.attr("x", function(d, i) {
+		return xScale(i);
+	})
+		.attr("y", function(d) {
+			return SVG_HEIGHT - yScale(d.value);
+		})
+		.attr("width", xScale.rangeBand())
+		.attr("height", function(d) {
+			return yScale(d.value)
+		})
+	// .style("fill", function(d) {
+	// 	return d.color;
+	// })
+
+}
+
+function updateText() {
+	if (shapeType === "circles") {
 		svg.selectAll('text')
 			.data(dataset, key)
 			.transition()
@@ -236,23 +356,29 @@ function steps(animation) {
 			.attr("font-size", function(d) {
 				return d.value + "px"
 			})
-
-		// swapElement(element, data, animation, svg, key, durationTime);
-	} else if (action.type === "create") {
-		if (!svg2) {
-			svg2 = d3.select('#displaySVG2').append('svg')
-				.attr('width', SVG_WIDTH)
-				.attr('height', SVG_HEIGHT);
-		};
-
-
+	} else {
+		svg.selectAll('text').data(dataset, key)
+			.enter()
+			.append("text")
+			.text(function(d) {
+				return d.value;
+			})
+			.attr("id", function(d, i) {
+				return "circle" + i;
+			})
+			.attr("x", function(d, i) {
+				return xScale(i) + xScale.rangeBand() / 2;
+			})
+			.attr("y", function(d) {
+				return SVG_HEIGHT - yScale(d.value) + 14;
+			})
+			.attr("font-size", function(d) {
+				return d.value + "px"
+			})
 	}
-	timeoutGlob.setTimeout(function() {
-		steps(animation)
-	}, DURATION);
-	// console.log(timeoutID)
 
 }
+
 
 function getxAxis(arr, index) {
 	var xAxis = 200;
@@ -395,43 +521,114 @@ function getNote(num) {
 }
 
 //credit :http://www.nczonline.net/blog/2009/01/27/speed-up-your-javascript-part-3/
-function mergeSort(arr, prop) {
+// function mergeSort(arr, prop) {
+// 	var animations = [];
+// 	var brr = _.clone(arr, true);
+// 	var len = brr.length;
+
+// 	function merge(left, right) {
+// 		var result = [];
+
+// 		while (left.length && right.length) {
+// 			if (left[0] <= right[0]) {
+// 				result.push(left.shift());
+// 			} else {
+// 				result.push(right.shift());
+// 			}
+// 		}
+
+// 		while (left.length)
+// 			result.push(left.shift());
+
+// 		while (right.length)
+// 			result.push(right.shift());
+
+// 		return result;
+// 	}
+// 	if (arr.length < 2)
+// 		return arr;
+
+// 	var middle = parseInt(arr.length / 2);
+// 	var left = arr.slice(0, middle);
+// 	var right = arr.slice(middle, arr.length);
+
+// 	return merge(mergeSort(left), mergeSort(right));
+
+// }
+
+function heapSort(arr, prop) {
+
 	var animations = [];
 	var brr = _.clone(arr, true);
-	var len = brr.length;
-
-	function merge(left, right) {
-		var result = [];
-
-		while (left.length && right.length) {
-			if (left[0] <= right[0]) {
-				result.push(left.shift());
-			} else {
-				result.push(right.shift());
-			}
-		}
-
-		while (left.length)
-			result.push(left.shift());
-
-		while (right.length)
-			result.push(right.shift());
-
-		return result;
+	// var len = brr.length;
+	console.log(brr.map(function(d) {
+		return d.value;
+	}));
+	put_array_in_heap_order(brr, prop);
+	end = brr.length - 1;
+	while (end > 0) {
+		swap(brr, 0, end);
+		animations.push({
+			type: "swap",
+			i: 0,
+			j: end
+		})
+		sift_element_down_heap(brr, 0, end, prop);
+		end -= 1;
 	}
-	if (arr.length < 2)
-		return arr;
 
-	var middle = parseInt(arr.length / 2);
-	var left = arr.slice(0, middle);
-	var right = arr.slice(middle, arr.length);
+	function put_array_in_heap_order(arrT, prop) {
+		var i;
+		i = arrT.length / 2 - 1;
+		i = Math.floor(i);
+		while (i >= 0) {
+			sift_element_down_heap(arrT, i, arrT.length, prop);
+			i -= 1;
+		}
+	}
 
-	return merge(mergeSort(left), mergeSort(right));
+	function sift_element_down_heap(heap, i, max, prop) {
+		var i_big, c1, c2;
+		while (i < max) {
+			i_big = i;
+			c1 = 2 * i + 1;
+			c2 = c1 + 1;
+			if (c1 < max && heap[c1][prop] > heap[i_big][prop])
+				i_big = c1;
+			if (c2 < max && heap[c2][prop] > heap[i_big][prop])
+				i_big = c2;
+			if (i_big == i) return;
+			swap(heap, i, i_big);
+			animations.push({
+				type: "swap",
+				i: i,
+				j: i_big
+			})
+			i = i_big;
+		}
+	}
 
+	console.log(brr.map(function(d) {
+		return d.value;
+	}));
+	return animations;
 }
+// function heap_sort(arr) {
+// 	var brr = _.clone(arr, true);
+// 	put_array_in_heap_order(brr);
+// 	end = brr.length - 1;
+// 	while (end > 0) {
+// 		swap(brr, 0, end);
+// 		sift_element_down_heap(brr, 0, end);
+// 		end -= 1;
+// 	}
+// 	console.log(brr);
+// }
 
-function swap(brr, i, j) {
-	var a = brr[i];
-	brr[i] = brr[j];
-	brr[j] = a;
+
+
+function swap(arr, i, j) {
+	var temp = arr[i];
+	arr[i] = arr[j];
+	arr[j] = temp;
 }

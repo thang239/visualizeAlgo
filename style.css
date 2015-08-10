@@ -13,7 +13,7 @@
 
 .slider{
 	width: 300px !important;
-	margin-left: 20%;
+	margin-left: 2%;
 }
 
 .labelSlider{
@@ -22,6 +22,14 @@
 	text-align: right;
 }
 
-#selectSorting {
+select {
 	height:34px !important;
+}
+
+#duration {
+	display: inline-block;
+}
+
+#durationAmount{
+	display: inline-block;
 }

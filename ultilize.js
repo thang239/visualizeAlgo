@@ -3,3 +3,6 @@ Array.prototype.swap = function(i, j) {
 	this[i] = this[j];
 	this[j] = a;
 }
+
+
+// function output

@@ -5,7 +5,7 @@
         attack: 1,
         release: 100,
         volume: 1,
-        type: "sine",
+        type: "square",
 
 
         playFrequency: function(freq) {

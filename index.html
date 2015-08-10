@@ -42,32 +42,35 @@ Section: x
  -->
 	<div class="sliderContainer">
 		<label for="duration" class="labelSlider" id="durationLabel">
-			duration 
+			Duration 
 		</label>
-		<input type="range" min="10" max="10000" id="duration" class="slider" oninput="durationAmount.value=duration.value">
-		<output name="amount" id="durationAmount" for="duration"></output>
+		<input type="range" min="10" max="1000" id="duration" class="slider" oninput="durationAmount.value=duration.value">
+		<output name="amount" id="durationAmount" for="duration">50</output>
 	</div>
 	<div class="buttonContainer">
-
-		<button id="generate"class="btn btn-success updateButton" style="text-align:center">Generate</button>
-		<select class="btn btn-success updateButton" id="selectSorting">
+		<select class="btn btn-primary updateButton" id="selectShape">
+		  <option value="circles">Circles</option>
+		  <option value="bars">Bars</option>
+		</select>
+		<button id="generate"class="btn btn-primary updateButton" style="text-align:center">Generate</button>
+		<select class="btn btn-primary updateButton" id="selectSorting">
 		  <option value="bubbleSort">Buble Sort</option>
 		  <option value="insertionSort">Insertion Sort</option>
 		  <option value="selectionSort">Selection Sort</option>
-		  <option value="mergeSort">Merge Sort</option>
 		  <option value="heapSort">Heap Sort</option>
+		  <option value="mergeSort">Merge Sort</option>
 		  <option value="exchangeSort">Exchange Sort</option>
 		  <option value="quickSort">Quick Sort</option>
 		</select>
 
-		<button id="runsort"class="btn btn-success updateButton" style="text-align:center">Run Sorting</button>
-		<button id="update" class="btn btn-success updateButton" style="text-align:center">Update</button>
+		<button id="runsort"class="btn btn-primary updateButton" style="text-align:center">Run Sorting</button>
+		<button id="shuffle" class="btn btn-primary updateButton" style="text-align:center">Shuffle</button>
 
-		<button id="pauseresume" class="btn btn-success updateButton" style="text-align:center">Pause</button><!-- 
-		<button id="resume" class="btn btn-success updateButton" style="text-align:center">Resume</button> -->
+		<button id="pauseresume" class="btn btn-primary updateButton" style="text-align:center">Pause</button><!-- 
+		<button id="resume" class="btn btn-primary updateButton" style="text-align:center">Resume</button> -->
 
-	</div>
-		<p>Click on this text to update the chart with new data values (once).</p>
+	</div><!-- 
+		<p>Click on this text to update the chart with new data values (once).</p> -->
 
 <!-- <p>This is the first paragraph in the body of your new HTML file!</p> -->
 
