@@ -44,7 +44,7 @@ Section: x
 		<label for="duration" class="labelSlider" id="durationLabel">
 			Duration 
 		</label>
-		<input type="range" min="10" max="1000" id="duration" class="slider" oninput="durationAmount.value=duration.value">
+		<input type="range" min="1" max="500" id="duration" class="slider" oninput="durationAmount.value=duration.value">
 		<output name="amount" id="durationAmount" for="duration">50</output>
 	</div>
 	<div class="sliderContainer">
@@ -56,8 +56,8 @@ Section: x
 	</div>
 	<div class="buttonContainer">
 		<select class="btn btn-primary updateButton" id="selectShape">
-		  <option value="circles">Circles</option>
-		  <option value="bars">Bars</option>
+		  <option value="circle">Circles</option>
+		  <option value="bar">Bars</option>
 		</select>
 		<button id="generate"class="btn btn-primary updateButton" style="text-align:center">Generate</button>
 		<select class="btn btn-primary updateButton" id="selectSorting">

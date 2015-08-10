@@ -1,19 +1,21 @@
 var yAxis = 150;
 var animation = [];
 
-var NUMBER_SHAPES = 30;
+var NUMBER_SHAPES = 34;
 var MIN_VALUE = 1;
 var MAX_VALUE = 34;
 var dataset;
 var dataset_sorted;
 var SVG_WIDTH = 1200;
 var SVG_HEIGHT = 400;
-var DURATION = 100;
+var DURATION = 50;
 var PADDING = 2;
 var MIN_FONT_SIZE = 10;
+var MAX_FONT_SIZE = 30;
 var svg, svg2;
 var timeoutID;
 var generate, update;
+var sorting = false;
 // var tones = play();
 
 var timeoutGlob = {
@@ -30,18 +32,17 @@ var timeoutGlob = {
 };
 
 var sortType = "bubbleSort";
-var shapeType = "circles";
+var shapeType = "circle";
 var key = function(d) {
 	return d.key;
 };
 window.onload = function() {
-	circleShape();
-	// play()
+	visualizeAlgo();
 }
 
 
 
-function circleShape() {
+function visualizeAlgo() {
 	var circlePadding = 1;
 	var startTime, stopTime, currentTime;
 	var xScale, yScale;
@@ -101,6 +102,7 @@ function circleShape() {
 		})
 	d3.select("#runsort")
 		.on("click", function() {
+			if (animation.length) return;
 			switch (sortType) {
 				case "bubbleSort":
 					animation = bubbleSort(dataset, "value");
@@ -147,7 +149,7 @@ function circleShape() {
 	})
 };
 generate = {
-	circles: function generateCircles(element) {
+	circle: function generateCircles(element) {
 		var circleAttributes = element.circles.data(dataset, key)
 			.enter()
 			.append("circle")
@@ -188,7 +190,7 @@ generate = {
 			.attr("fill", "white");
 
 	},
-	bars: function generateBars(element, xScale, yScale) {
+	bar: function generateBars(element, xScale, yScale) {
 		var barAttributes = element.bars.data(dataset, key)
 			.enter()
 			.append("rect")
@@ -227,7 +229,15 @@ generate = {
 			})
 			.attr("font-family", "sans-serif")
 			.attr("font-size", function(d) {
-				return (d.value < MIN_FONT_SIZE) ? (MIN_FONT_SIZE + "px") : (d.value + "px");
+				if (dataset.length > 34) {
+					return "4px"
+				} else if (d.value < MIN_FONT_SIZE) {
+					return MIN_FONT_SIZE + "px";
+				} else if (d.value > MIN_FONT_SIZE) {
+					return MAX_FONT_SIZE + "px";
+				}
+				return d.value + "px";
+				// var minfont = (d.value < MIN_FONT_SIZE) ? (MIN_FONT_SIZE + "px") : (d.value + "px");
 			})
 			.attr("fill", "white");
 
@@ -240,7 +250,12 @@ generate = {
 function play() {
 	if (dataset_sorted.length === 0) return;
 	var note = dataset_sorted.pop();
-	tones.play(getNote(note.value), 5);
+	if (dataset.length > 34) {
+		tones.play(getNote(note.value), Math.floor(note.value / 17));
+	} else {
+		// console.log(Math.floor(note.value / 17) + 4);
+		tones.play(getNote(note.value), Math.floor(note.value / 17 + 4));
+	}
 	setTimeout(function() {
 		play();
 	}, DURATION);
@@ -256,8 +271,8 @@ function steps(animation, xScale, yScale) {
 	var action = animation.shift();
 	if (action && (action.type === "swap")) {
 		dataset.swap(action.i, action.j);
-		tones.play(getNote(action.i), 5);
-		tones.play(getNote(action.j), 5);
+		tones.play(getNote(action.i), 4);
+		tones.play(getNote(action.j), 4);
 		//update shapes and texts
 		update[shapeType](xScale, yScale);
 		update.texts(xScale, yScale);
@@ -277,7 +292,7 @@ function steps(animation, xScale, yScale) {
 }
 
 update = {
-	circles: function updateCircles() {
+	circle: function updateCircles() {
 		svg.selectAll('circle')
 			.data(dataset, key)
 			.attr("T", 0)
@@ -292,7 +307,7 @@ update = {
 				return yAxis;
 			});
 	},
-	bars: function updateBars(xScale, yScale) {
+	bar: function updateBars(xScale, yScale) {
 		svg.selectAll('rect')
 			.data(dataset, key)
 			.transition()
@@ -309,7 +324,7 @@ update = {
 			})
 	},
 	texts: function updateText(xScale, yScale) {
-		if (shapeType === "circles") {
+		if (shapeType === "circle") {
 			svg.selectAll('text')
 				.data(dataset, key)
 				.transition()
@@ -341,7 +356,14 @@ update = {
 					return SVG_HEIGHT - yScale(d.value) + d.value * 2;
 				})
 				.attr("font-size", function(d) {
-					return (d.value < MIN_FONT_SIZE) ? (MIN_FONT_SIZE + "px") : (d.value + "px");
+					if (dataset.length > 34) {
+						return "4px"
+					} else if (d.value < MIN_FONT_SIZE) {
+						return MIN_FONT_SIZE + "px";
+					} else if (d.value > MIN_FONT_SIZE) {
+						return MAX_FONT_SIZE + "px";
+					}
+					return d.value + "px";
 				})
 		}
 
@@ -350,7 +372,7 @@ update = {
 }
 
 function getNewSvgWidth() {
-	if (shapeType === "circles") {
+	if (shapeType === "circle") {
 		var newWidth = dataset.reduce(function(sum, d) {
 			sum += d.value * 2;
 			return sum;
@@ -388,6 +410,7 @@ function generateRandomDataset(num, min, max) {
 
 function generateFixedDataset() {
 	var arr = d3.range(1, 35);
+	if (shapeType === 'bar') arr = d3.range(1, 171)
 	shuffle(arr);
 	console.log(arr);
 	return arr.map(function(d, i) {
@@ -407,6 +430,7 @@ function getBlueColor(value) {
 	return "rgb(0, 0, " + (value * 10) + ")";
 }
 
+//Fisher Yates shuffle
 function shuffle(array) {
 	var j;
 	for (var i = array.length - 1; i > 0; i--) {
